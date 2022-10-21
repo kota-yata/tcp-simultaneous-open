@@ -8,42 +8,51 @@
 #define BUF_SIZE 1024
 
 int main(int argc, char *argv[]) {
-  if (argc != 3) {
-    printf("Insufficient number of arguments\n");
-    exit(EXIT_FAILURE);
-  }
-
   char* message = "Hello :)";
-  char buffer[BUF_SIZE] = { 0 };
+  char* buffer = malloc(BUF_SIZE);
+  int fd_in;
+  int fd_out;
+  int fd_misc;
 
   int m_socket = socket(AF_INET, SOCK_STREAM, 0);
   if (m_socket < 0) {
     printf("Socket generation failed\n");
-    exit(EXIT_FAILURE);
+    return -1;
   }
 
-  struct sockaddr_in peer_addr;
-  peer_addr.sin_family = AF_INET;
-  peer_addr.sin_port = htons(argv[2]);
+  struct sockaddr_in my_addr;
+  memset(&my_addr, 0, sizeof(my_addr));
+  my_addr.sin_family = AF_INET;
+  my_addr.sin_addr.s_addr = inet_addr(argv[1]);
+  my_addr.sin_port = htons(atoi(argv[2]));
 
-  int pton_res = inet_pton(AF_INET, argv[1], &peer_addr.sin_addr);
-  if (pton_res <= 0) {
-    printf("Conversion from string to binary failed\n");
-    exit(EXIT_FAILURE);
+  struct sockaddr_in peer_addr;
+  memset(&peer_addr, 0, sizeof(peer_addr));
+  peer_addr.sin_family = AF_INET;
+  peer_addr.sin_addr.s_addr = inet_addr(argv[3]);
+  peer_addr.sin_port = htons(atoi(argv[4]));
+
+  int bind_res = bind(fd_in, (struct sockaddr*) &my_addr, sizeof(my_addr));
+  if (bind_res < 0) {
+    printf("Failed to bind");
+    close(fd_in);
+    return -1;
   }
 
   // Connection Attempt
-  int fd = connect(0, (struct sockaddr*) &peer_addr, sizeof(peer_addr));
-  if (fd < 0) {
+  int connect_res = connect(fd_out, (struct sockaddr*) &my_addr, sizeof(my_addr));
+  if (connect_res < 0) {
     printf("Connection attempt failed\n");
-    exit(EXIT_FAILURE);
+    return - 1;
   }
 
   send(0, message, strlen(message), 0);
-  ssize_t received_val = read(0, buffer, BUF_SIZE);
+  ssize_t received_val = recv(fd_misc, buffer, BUF_SIZE, 0);
   printf("%s\n", buffer);
 
-  close(fd);
+  free(buffer);
 
-  return EXIT_SUCCESS;
+  close(fd_in);
+
+  return 0;
 }

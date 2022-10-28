@@ -5,8 +5,72 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <sys/time.h>
 
 #define BUF_SIZE 1024
+
+int construct_sockaddr(struct sockaddr_in* addr_struct, char* addr, char* port);
+int get_remaining_msec();
+
+int main(int argc, char *argv[]) {
+  char* message = "Hello :)";
+  int misc_descriptor = -1;
+  int my_descriptor = -1;
+  int connect_res = -1;
+
+  my_descriptor = socket(AF_INET, SOCK_STREAM, 0);
+  if (my_descriptor < 0) {
+    printf("Socket generation failed\n");
+    exit(EXIT_FAILURE);
+  }
+
+  struct sockaddr_in my_addr;
+  my_addr.sin_family = AF_INET;
+  my_addr.sin_addr.s_addr = inet_addr(argv[1]);
+  my_addr.sin_port = htons((unsigned short) atoi(argv[2]));
+
+  // construct_sockaddr(&my_addr, argv[1], argv[2]);
+  struct sockaddr_in peer_addr;
+  peer_addr.sin_family = AF_INET;
+  peer_addr.sin_addr.s_addr = inet_addr(argv[3]);
+  peer_addr.sin_port = htons((unsigned short) atoi(argv[4]));
+  // construct_sockaddr(&peer_addr, argv[3], argv[4]);
+
+  if (bind(my_descriptor, (struct sockaddr*)&my_addr, sizeof(my_addr)) < 0) {
+    printf("Failed to bind %s\n", argv[1]);
+    close(my_descriptor);
+    exit(EXIT_FAILURE);
+  }
+
+  int wait_for = get_remaining_msec();
+  printf("Waiting for %d microseconds\n", wait_for);
+  usleep(wait_for);
+
+  printf("Connecting...\n");
+  connect_res = connect(my_descriptor, (struct sockaddr*) &peer_addr, sizeof(peer_addr));
+  if (connect_res < 0) {
+    printf("Connection Attempt Failed\n");
+    exit(EXIT_FAILURE);
+  }
+  printf("Connection Established\n");
+
+  // write(fd_out, message, sizeof(message));
+  if (write(my_descriptor, message, sizeof(message)) < 0) {
+    printf("Failed to send message");
+    exit(EXIT_FAILURE);
+  }
+  char* buffer = malloc(BUF_SIZE);
+  if (read(my_descriptor, buffer, sizeof(buffer)) < 0) {
+    printf("Failed to read message");
+    exit(EXIT_FAILURE);
+  }
+  printf("Received: %s \n", buffer);
+  free(buffer);
+  close(misc_descriptor);
+  close(my_descriptor);
+
+  return EXIT_SUCCESS;
+}
 
 int construct_sockaddr(struct sockaddr_in* addr_struct, char* addr, char* port) {
   memset(addr_struct, 0, sizeof(*addr_struct));
@@ -16,60 +80,12 @@ int construct_sockaddr(struct sockaddr_in* addr_struct, char* addr, char* port) 
   return 0;
 }
 
-int get_remaining_sec() {
-  time_t t = time(NULL);
+int get_remaining_msec() {
+  struct timeval my_time;
+  gettimeofday(&my_time, NULL);
   struct tm tm;
-  gmtime_r(&t, &tm);
-  return 60 - tm.tm_sec;
-}
-
-int main(int argc, char *argv[]) {
-  char* message = "Hello :)";
-  int fd_out = -1;
-  int fd_in = -1;
-
-  fd_out = socket(AF_INET, SOCK_STREAM, 0);
-  if (fd_out < 0) {
-    printf("Socket generation failed\n");
-    return -1;
-  }
-
-  struct sockaddr_in my_addr;
-  construct_sockaddr(&my_addr, argv[1], argv[2]);
-  struct sockaddr_in peer_addr;
-  construct_sockaddr(&peer_addr, argv[3], argv[4]);
-
-  if (bind(fd_out, (struct sockaddr*) &my_addr, sizeof(my_addr)) < 0) {
-    printf("Failed to bind %s\n", argv[1]);
-    close(fd_out);
-    return -1;
-  }
-
-  int wait_for = get_remaining_sec();
-  printf("Waiting for %ds\n", wait_for);
-  sleep(wait_for);
-
-  // Connection Attempt
-  if (connect(fd_out, (struct sockaddr*) &peer_addr, sizeof(peer_addr)) < 0) {
-    printf("Connection attempt failed\n");
-    return - 1;
-  }
-  printf("Connected!");
-
-  // write(fd_out, message, sizeof(message));
-  if (send(fd_out, message, sizeof(message), 0) < 0) {
-    printf("Failed to send message");
-    return -1;
-  }
-  char* buffer = malloc(BUF_SIZE);
-  if (read(fd_in, buffer, BUF_SIZE) < 0) {
-    printf("Failed to read message");
-    return -1;
-  }
-  printf("Received: %s \n", buffer);
-  free(buffer);
-  close(fd_out);
-  close(fd_in);
-
-  return 0;
+  gmtime_r(&my_time.tv_sec, &tm);
+  int sec = 60 - tm.tm_sec - 1;
+  int ms = 1000000 - my_time.tv_usec;
+  return sec * 1000000 + ms;
 }

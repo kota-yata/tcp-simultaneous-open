@@ -79,10 +79,9 @@ int main(int argc, char *argv[]) {
     attribute_length = htons(*(short *)(&buffer[i + 2]));
     // If the attribute is XOR_MAPPED_ADDRESS, parse it
     if (attribute_type == 0x0020) {
-      printf("XOR\n");
       port = ntohs(*(short *)(&buffer[i + 6]));
       port ^= 0x2112;
-      printf("%d\n", port);
+      printf("%d.%d.%d.%d:%d\n", buffer[i + 8] ^ 0x21, buffer[i + 9] ^ 0x12, buffer[i + 10] ^ 0xA4, buffer[i + 11] ^ 0x42, port);
       break;
     }
     i += 4 + attribute_length;

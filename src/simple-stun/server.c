@@ -6,7 +6,7 @@
 #include <string.h>
 // #include <pcap/pcap.h>
 
-#define SERVER_ADDR "172.16.5.4"
+#define SERVER_ADDR "0.0.0.0"
 #define SERVER_PORT 55555
 
 int main(void) {

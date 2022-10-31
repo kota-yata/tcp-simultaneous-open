@@ -5,8 +5,13 @@
 #include <stdio.h>
 #include <string.h>
 
+#define BUF_MAX 200
+
 int main(int argc, char *argv[]) {
   int descriptor = -1;
+  unsigned char buffer[BUF_MAX];
+  unsigned char binding_request[20];
+  memset(&binding_request, 0, sizeof(binding_request));
 
   struct sockaddr_in sin_server, sin;
   memset(&sin, 0, sizeof(sin));
@@ -23,7 +28,7 @@ int main(int argc, char *argv[]) {
   sin.sin_port = htons(atoi(argv[1]));
 
   if (bind(descriptor, (struct sockaddr *)&sin, sizeof(sin)) < 0) {
-    printf("Failed to bind");
+    printf("Failed to bind\n");
     return -1;
   };
 
@@ -38,7 +43,44 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  printf("Connected");
+  printf("Connected\n");
+
+  *(short *)(&binding_request[0]) = htons(0x0001); // Message Type (Binding Request this time)
+  *(int *)(&binding_request[4]) = htonl(0x2112A442); // Magic Cookie (Fixed value to distinguish STUN traffic from other protocols)
+  *(int *)(&binding_request[8]) = htonl(0x471B519F); // Transaction ID (Random value to pair up a request and corresponding response)
+
+  printf("Sending Binding Request...");
+  if (send(descriptor, &binding_request, sizeof(binding_request), 0) < 0) {
+    printf("Failed\n");
+    close(descriptor);
+    return -1;
+  }
+
+  printf("Sent\nReceiving Binding Response...");
+  if (recv(descriptor, &buffer, BUF_MAX, 0) < 0) {
+    printf("Failed\n");
+    close(descriptor);
+    return  -1;
+  }
+
+  // 0x0101 at the first two bytes means this is Binding Response
+  // that being said the response is successfully received
+  if (*(short *)(&buffer[0]) == htons(0x0101)) {
+    printf("Received\n");
+  }
+
+  int i = 20; // Data section starts after the header, which is 20 bytes
+  short attribute_type;
+  short attribute_length;
+  // Continuously read attributes in the data section
+  while(i < sizeof(buffer)) {
+    attribute_type = htons(*(short *)(&buffer[i]));
+    attribute_length = htons(*(short *)(&buffer[i + 2]));
+    // If the attribute is XOR_MAPPED_ADDRESS, parse it
+    if (attribute_type == 0x0020) {
+      // TODO: Write parse from here
+    }
+  }
   close(descriptor);
 
   return 0;

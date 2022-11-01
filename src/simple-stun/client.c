@@ -70,7 +70,7 @@ int main(int argc, char *argv[]) {
     int i = 20; // Data section starts after the header, which is 20 bytes
     short attribute_type;
     short attribute_length;
-    unsigned short port;
+    short port;
     // Continuously read attributes in the data section
     while(i < sizeof(buffer)) {
       attribute_type = htons(*(short *)(&buffer[i]));

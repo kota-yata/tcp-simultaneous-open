@@ -6,6 +6,7 @@
 #include <string.h>
 #include <time.h>
 #include <sys/time.h>
+#include <netinet/in.h>
 
 #define BUF_SIZE 1024
 

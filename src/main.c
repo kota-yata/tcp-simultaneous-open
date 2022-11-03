@@ -48,25 +48,27 @@ int main(int argc, char *argv[]) {
   usleep(wait_for);
 
   printf("Connecting...\n");
-  connect_res = connect(my_descriptor, (struct sockaddr*) &peer_addr, sizeof(peer_addr));
-  if (connect_res < 0) {
-    printf("Connection Attempt Failed\n");
-    exit(EXIT_FAILURE);
+  while(1) {
+    if (connect(my_descriptor, (struct sockaddr*) &peer_addr, sizeof(peer_addr)) < 0) {
+      printf("Connection Attempt Failed\n");
+      continue;
+    }
+    printf("Connection Established\n");
+    // write(fd_out, message, sizeof(message));
+    if (write(my_descriptor, message, sizeof(message)) < 0) {
+      printf("Failed to send message");
+      break;
+    }
+    char* buffer = malloc(BUF_SIZE);
+    if (read(my_descriptor, buffer, sizeof(buffer)) < 0) {
+      printf("Failed to read message");
+      free(buffer);
+      break;
+    }
+    printf("Received: %s \n", buffer);
+    free(buffer);
+    break;
   }
-  printf("Connection Established\n");
-
-  // write(fd_out, message, sizeof(message));
-  if (write(my_descriptor, message, sizeof(message)) < 0) {
-    printf("Failed to send message");
-    exit(EXIT_FAILURE);
-  }
-  char* buffer = malloc(BUF_SIZE);
-  if (read(my_descriptor, buffer, sizeof(buffer)) < 0) {
-    printf("Failed to read message");
-    exit(EXIT_FAILURE);
-  }
-  printf("Received: %s \n", buffer);
-  free(buffer);
   close(misc_descriptor);
   close(my_descriptor);
 

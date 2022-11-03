@@ -9,6 +9,7 @@
 #define BUF_MAX 200
 
 int main(int argc, char *argv[]) {
+  struct sockaddr_in;
   int descriptor = -1;
   unsigned char buffer[BUF_MAX];
   unsigned char binding_request[20];

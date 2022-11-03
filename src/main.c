@@ -1,6 +1,5 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
-#include <sys/select.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -16,7 +15,6 @@ int get_remaining_msec();
 
 int main(int argc, char *argv[]) {
   char* message = "Hello :)";
-  fd_set fds;
   int misc_descriptor = -1;
   int my_descriptor = -1;
   int connect_res = -1;
@@ -45,36 +43,28 @@ int main(int argc, char *argv[]) {
     exit(EXIT_FAILURE);
   }
 
-  FD_ZERO(&fds);
-  FD_SET(my_descriptor, &fds);
-
   int wait_for = get_remaining_msec();
   printf("Waiting for %d microseconds\n", wait_for);
   usleep(wait_for);
 
   printf("Connecting...\n");
-  while(1) {
-    if (connect(my_descriptor, (struct sockaddr*) &peer_addr, sizeof(peer_addr)) < 0) {
-      printf("Connection Attempt Failed\n");
-      select(my_descriptor + 1, &fds, NULL, NULL, NULL);
-      continue;
-    }
-    printf("Connection Established\n");
-    // write(fd_out, message, sizeof(message));
-    if (write(my_descriptor, message, sizeof(message)) < 0) {
-      printf("Failed to send message");
-      break;
-    }
-    char* buffer = malloc(BUF_SIZE);
-    if (read(my_descriptor, buffer, sizeof(buffer)) < 0) {
-      printf("Failed to read message");
-      free(buffer);
-      break;
-    }
-    printf("Received: %s \n", buffer);
-    free(buffer);
-    break;
+  if (connect(my_descriptor, (struct sockaddr*) &peer_addr, sizeof(peer_addr)) < 0) {
+    printf("Connection Attempt Failed\n");
+    exit(EXIT_FAILURE);
   }
+  printf("Connection Established\n");
+  if (write(my_descriptor, message, sizeof(message)) < 0) {
+    printf("Failed to send message");
+    exit(EXIT_FAILURE);
+  }
+  char* buffer = malloc(BUF_SIZE);
+  if (read(my_descriptor, buffer, sizeof(buffer)) < 0) {
+    printf("Failed to read message");
+    free(buffer);
+    exit(EXIT_FAILURE);
+  }
+  printf("Received: %s \n", buffer);
+  free(buffer);
   close(misc_descriptor);
   close(my_descriptor);
 

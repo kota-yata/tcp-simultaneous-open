@@ -71,7 +71,7 @@ int main(int argc, char *argv[]) {
     int i = 20; // Data section starts after the header, which is 20 bytes
     short attribute_type;
     short attribute_length;
-    short port;
+    unsigned short port;
     // Continuously read attributes in the data section
     while(i < sizeof(buffer)) {
       attribute_type = htons(*(short *)(&buffer[i]));
@@ -79,7 +79,6 @@ int main(int argc, char *argv[]) {
       // If the attribute is XOR_MAPPED_ADDRESS, parse it
       if (attribute_type == 0x0020) {
         port = ntohs(*(short *)(&buffer[i + 6]));
-        printf("%d\n", port);
         port ^= 0x2112;
         printf("%d.%d.%d.%d:%d\n", buffer[i + 8] ^ 0x21, buffer[i + 9] ^ 0x12, buffer[i + 10] ^ 0xA4, buffer[i + 11] ^ 0x42, port);
         break;

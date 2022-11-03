@@ -1,5 +1,6 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <sys/select.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -15,6 +16,7 @@ int get_remaining_msec();
 
 int main(int argc, char *argv[]) {
   char* message = "Hello :)";
+  fd_set fds;
   int misc_descriptor = -1;
   int my_descriptor = -1;
   int connect_res = -1;
@@ -43,6 +45,9 @@ int main(int argc, char *argv[]) {
     exit(EXIT_FAILURE);
   }
 
+  FD_ZERO(&fds);
+  FD_SET(my_descriptor, &fds);
+
   int wait_for = get_remaining_msec();
   printf("Waiting for %d microseconds\n", wait_for);
   usleep(wait_for);
@@ -51,6 +56,7 @@ int main(int argc, char *argv[]) {
   while(1) {
     if (connect(my_descriptor, (struct sockaddr*) &peer_addr, sizeof(peer_addr)) < 0) {
       printf("Connection Attempt Failed\n");
+      select(my_descriptor + 1, &fds, NULL, NULL, NULL);
       continue;
     }
     printf("Connection Established\n");

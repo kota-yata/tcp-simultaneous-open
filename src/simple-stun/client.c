@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
+#include <netinet/in.h>
 
 #define BUF_MAX 200
 
